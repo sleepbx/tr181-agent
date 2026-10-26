@@ -33,6 +33,7 @@ body { background: var(--bg); color: var(--fg); font: 16px/1.6 var(--f-body); }
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
   display: grid; gap: 40px; }
+.wrap > * { min-width: 0; }
 header { display: grid; gap: 12px; }
 .eyebrow { font: 600 12px/1 var(--f-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
 h1 { font: 600 clamp(32px, 6vw, 48px)/1.05 var(--f-display); margin: 0; text-wrap: balance; }
@@ -61,6 +62,18 @@ p { margin: 0; max-width: 65ch; }
 .quick button:hover { border-color: var(--accent); color: var(--accent); }
 .quick button:focus-visible, #cmd:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
+.devs { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
+.devs-label { font: 600 11px/1 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-right: 4px; }
+.devs button { font: 13px/1 var(--f-body); padding: 8px 12px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--panel); color: var(--fg); }
+.devs button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 600; }
+.devs button:focus-visible, .examples button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.hint { color: var(--muted); margin-bottom: 16px; }
+h3 { font: 600 11px/1 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
+.examples > div { display: grid; gap: 6px; align-content: start; }
+.examples button { text-align: left; font: 13px/1.4 var(--f-mono); padding: 8px 10px; border-radius: 6px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--panel); color: var(--fg); overflow-wrap: anywhere; }
+.examples button:hover { border-color: var(--accent); color: var(--accent); }
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px; }
 .grid > div { min-width: 0; }
 .scroll { overflow-x: auto; }
@@ -85,8 +98,14 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
   </header>
 
   <section aria-label="Interactive terminal">
+    <div class="devs" id="devs" role="group" aria-label="Sample device">
+      <span class="devs-label">Sample device</span>
+      <button type="button" data-d="home" aria-pressed="true">Home router · OpenWrt</button>
+      <button type="button" data-d="gateway" aria-pressed="false">Gateway · prplOS</button>
+      <button type="button" data-d="ont" aria-pressed="false">Fiber ONT · Yocto</button>
+    </div>
     <div class="term">
-      <div class="term-bar"><span><span class="led" aria-hidden="true"></span>root@openwrt-cpe</span><span>sample device · uptime <span id="up">0</span>s</span></div>
+      <div class="term-bar"><span><span class="led" aria-hidden="true"></span><span id="host">root@openwrt-cpe</span></span><span>sample device · uptime <span id="up">0</span>s</span></div>
       <div id="out" role="log" aria-live="polite"></div>
       <form class="prompt" id="f"><span>tr181&gt;</span><input id="cmd" autocomplete="off" spellcheck="false" aria-label="Command" placeholder="get Device.DeviceInfo."></form>
     </div>
@@ -97,6 +116,37 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
       <button type="button" data-c="set Device.DeviceInfo.UpTime 5">try a read-only set</button>
       <button type="button" data-c="json Device.ManagementServer.">json (USP GetResp)</button>
       <button type="button" data-c="schema">schema</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>Commands to try</h2>
+    <p class="hint">Click any line to run it on the selected sample device. Use the arrow keys in the terminal to recall earlier commands.</p>
+    <div class="grid examples" id="examples">
+      <div>
+        <h3>Read</h3>
+        <button type="button">get Device.DeviceInfo.UpTime</button>
+        <button type="button">get Device.Ethernet.InterfaceNumberOfEntries</button>
+        <button type="button">get Device.Ethernet.Interface.1.</button>
+        <button type="button">get Device.Ethernet.Interface.2.Status</button>
+        <button type="button">get Device.ManagementServer.</button>
+      </div>
+      <div>
+        <h3>Write and validate</h3>
+        <button type="button">set Device.ManagementServer.PeriodicInformEnable 1</button>
+        <button type="button">set Device.ManagementServer.PeriodicInformInterval 600</button>
+        <button type="button">set Device.ManagementServer.PeriodicInformInterval ten</button>
+        <button type="button">set Device.DeviceInfo.ModelName X</button>
+        <button type="button">get Device.WiFi.</button>
+      </div>
+      <div>
+        <h3>USP JSON</h3>
+        <button type="button">json Device.DeviceInfo.</button>
+        <button type="button">json Device.Ethernet.Interface.1.Stats.</button>
+        <button type="button">json Device.Nope.</button>
+        <button type="button">version</button>
+        <button type="button">clear</button>
+      </div>
     </div>
   </section>
 
@@ -137,30 +187,66 @@ make package/tr181-agent/compile
 bitbake tr181-agent</pre>
   </section>
 
-  <footer>Sample values in the terminal are illustrative. On a real device every value comes from the kernel.</footer>
+  <footer>The three sample devices use dummy data, and changes you make reset when you reload. On a real device every value comes from the kernel.</footer>
 </div>
 
 <script>
 (function () {
-  var t0 = Date.now(), base = 86412;
-  var mgmt = { URL: ["", "string"], PeriodicInformEnable: ["false", "boolean"], PeriodicInformInterval: ["3600", "unsignedInt"] };
-  var ifs = [
-    { n: "br-lan", s: "Up", mac: "94:83:c4:1a:2b:3c", mtu: 1500, tx: 18234011, rx: 92310044, rate: 900 },
-    { n: "eth0", s: "Up", mac: "94:83:c4:1a:2b:3d", mtu: 1500, tx: 71200341, rx: 402119870, rate: 5200 },
-    { n: "lo", s: "Unknown", mac: "00:00:00:00:00:00", mtu: 65536, tx: 51233, rx: 51233, rate: 3 },
-    { n: "wlan0", s: "Down", mac: "94:83:c4:1a:2b:3e", mtu: 1500, tx: 0, rx: 0, rate: 0 }
-  ];
-  function up() { return base + Math.floor((Date.now() - t0) / 1000); }
+  // Dummy devices: all values are made up for the demo.
+  var devices = {
+    home: {
+      label: "Home router", host: "openwrt-cpe", model: "Generic-Linux-CPE", sw: "5.15.137", mem: 249344, up: 86412,
+      mgmt: { URL: "", PeriodicInformEnable: "false", PeriodicInformInterval: "3600" },
+      ifs: [
+        { n: "br-lan", s: "Up", mac: "94:83:c4:1a:2b:3c", mtu: 1500, tx: 18234011, rx: 92310044, rate: 900 },
+        { n: "eth0", s: "Up", mac: "94:83:c4:1a:2b:3d", mtu: 1500, tx: 71200341, rx: 402119870, rate: 5200 },
+        { n: "lo", s: "Unknown", mac: "00:00:00:00:00:00", mtu: 65536, tx: 51233, rx: 51233, rate: 3 },
+        { n: "wlan0", s: "Down", mac: "94:83:c4:1a:2b:3e", mtu: 1500, tx: 0, rx: 0, rate: 0 }
+      ]
+    },
+    gateway: {
+      label: "prplOS gateway", host: "prplos-gw", model: "prplOS-Ref-Board", sw: "6.1.82", mem: 1015808, up: 1209877,
+      mgmt: { URL: "https://acs.lab.local:7547", PeriodicInformEnable: "true", PeriodicInformInterval: "300" },
+      ifs: [
+        { n: "br-guest", s: "Up", mac: "02:1a:11:f0:00:04", mtu: 1500, tx: 4410233, rx: 9120044, rate: 300 },
+        { n: "br-lan", s: "Up", mac: "02:1a:11:f0:00:01", mtu: 1500, tx: 982341120, rx: 4120931177, rate: 22000 },
+        { n: "eth0", s: "Up", mac: "02:1a:11:f0:00:02", mtu: 1500, tx: 3311029455, rx: 9821004311, rate: 61000 },
+        { n: "eth1", s: "LowerLayerDown", mac: "02:1a:11:f0:00:03", mtu: 1500, tx: 0, rx: 0, rate: 0 },
+        { n: "lo", s: "Unknown", mac: "00:00:00:00:00:00", mtu: 65536, tx: 221877, rx: 221877, rate: 8 },
+        { n: "wlan0", s: "Up", mac: "02:1a:11:f0:00:05", mtu: 1500, tx: 52210933, rx: 300129002, rate: 7400 },
+        { n: "wlan1", s: "Dormant", mac: "02:1a:11:f0:00:06", mtu: 1500, tx: 120, rx: 0, rate: 0 }
+      ]
+    },
+    ont: {
+      label: "Fiber ONT", host: "ont-yocto", model: "Yocto-ARMv8-ONT", sw: "6.6.21-yocto-standard", mem: 507904, up: 3601,
+      mgmt: { URL: "", PeriodicInformEnable: "false", PeriodicInformInterval: "86400" },
+      ifs: [
+        { n: "eth0", s: "Up", mac: "3c:a6:2f:10:20:31", mtu: 9000, tx: 120998211, rx: 830220193, rate: 18000 },
+        { n: "lo", s: "Unknown", mac: "00:00:00:00:00:00", mtu: 65536, tx: 4120, rx: 4120, rate: 1 },
+        { n: "pon0", s: "Up", mac: "3c:a6:2f:10:20:30", mtu: 2000, tx: 330129877, rx: 2210982211, rate: 45000 }
+      ]
+    }
+  };
+  var types = { URL: "string", PeriodicInformEnable: "boolean", PeriodicInformInterval: "unsignedInt" };
+  var dev, ifs, t0;
+  function useDevice(id) {
+    dev = devices[id]; ifs = dev.ifs; t0 = Date.now();
+    document.getElementById("host").textContent = "root@" + dev.host;
+    document.querySelectorAll("#devs button").forEach(function (b) {
+      b.setAttribute("aria-pressed", b.getAttribute("data-d") === id ? "true" : "false");
+    });
+  }
+  function up() { return dev.up + Math.floor((Date.now() - t0) / 1000); }
 
   function params() {
     var p = [], el = (Date.now() - t0) / 1000;
     function add(k, v, t, w) { p.push({ k: k, v: String(v), t: t || "string", w: !!w }); }
     add("Device.DeviceInfo.Manufacturer", "OpenSource CPE");
-    add("Device.DeviceInfo.ModelName", "Generic-Linux-CPE");
-    add("Device.DeviceInfo.SoftwareVersion", "5.15.137");
-    add("Device.DeviceInfo.X_HostName", "openwrt-cpe");
+    add("Device.DeviceInfo.ModelName", dev.model);
+    add("Device.DeviceInfo.SoftwareVersion", dev.sw);
+    add("Device.DeviceInfo.X_HostName", dev.host);
     add("Device.DeviceInfo.UpTime", up(), "unsignedInt");
-    add("Device.DeviceInfo.MemoryStatus.Total", 249344, "unsignedInt");
+    add("Device.DeviceInfo.MemoryStatus.Total", dev.mem, "unsignedInt");
     add("Device.Ethernet.InterfaceNumberOfEntries", ifs.length, "unsignedInt");
     ifs.forEach(function (f, i) {
       var b = "Device.Ethernet.Interface." + (i + 1) + ".", g = Math.floor(f.rate * el);
@@ -172,7 +258,7 @@ bitbake tr181-agent</pre>
       add(b + "Stats.PacketsReceived", Math.floor((f.rx + g * 4) / 1100), "unsignedInt");
       add(b + "Stats.ErrorsSent", 0, "unsignedInt"); add(b + "Stats.ErrorsReceived", 0, "unsignedInt");
     });
-    Object.keys(mgmt).forEach(function (k) { add("Device.ManagementServer." + k, mgmt[k][0], mgmt[k][1], true); });
+    Object.keys(types).forEach(function (k) { add("Device.ManagementServer." + k, dev.mgmt[k], types[k], true); });
     return p;
   }
   function match(prefix) {
@@ -203,14 +289,14 @@ bitbake tr181-agent</pre>
     }
     if (c === "set" && a[1] && a.length >= 3) {
       var v = a.slice(2).join(" "), key = a[1].replace("Device.ManagementServer.", "");
-      if (a[1].indexOf("Device.ManagementServer.") === 0 && mgmt[key]) {
-        var t = mgmt[key][1];
+      if (a[1].indexOf("Device.ManagementServer.") === 0 && types[key]) {
+        var t = types[key];
         if (t === "unsignedInt" && !/^\d+$/.test(v)) return line("error: invalid value '" + v + "' for " + a[1], "err");
         if (t === "boolean") {
           if (!/^(true|false|1|0)$/.test(v)) return line("error: invalid value '" + v + "' for " + a[1], "err");
           v = (v === "1" || v === "true") ? "true" : "false";
         }
-        mgmt[key][0] = v; line(a[1] + '="' + v + '"'); return;
+        dev.mgmt[key] = v; line(a[1] + '="' + v + '"'); return;
       }
       line(match(a[1]).length ? "error: " + a[1] + " is read-only" : "error: " + a[1] + " not found", "err"); return;
     }
@@ -233,10 +319,30 @@ bitbake tr181-agent</pre>
   document.getElementById("quick").addEventListener("click", function (e) {
     var b = e.target.closest("button"); if (b) run(b.getAttribute("data-c"));
   });
+  document.getElementById("examples").addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (b) { run(b.textContent); input.focus(); }
+  });
+  document.getElementById("devs").addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    useDevice(b.getAttribute("data-d"));
+    out.textContent = "";
+    line("connected to " + dev.label + " (" + dev.host + ", " + ifs.length + " interfaces)", "dim");
+    run("get Device.DeviceInfo.");
+  });
+  var hist = [], hi = 0;
+  input.addEventListener("keydown", function (e) {
+    if (e.key === "ArrowUp" && hi > 0) { input.value = hist[--hi]; e.preventDefault(); }
+    if (e.key === "ArrowDown") { hi = Math.min(hist.length, hi + 1); input.value = hist[hi] || ""; e.preventDefault(); }
+  });
+  document.getElementById("f").addEventListener("submit", function () {
+    if (input.value.trim()) { hist.push(input.value.trim()); hi = hist.length; }
+  }, true);
+
+  useDevice("home");
   setInterval(function () { document.getElementById("up").textContent = up(); }, 1000);
   document.getElementById("up").textContent = up();
 
-  line("tr181ctl 1.0.0 - type 'help' or try a button below", "dim");
+  line("tr181ctl 1.0.0 - dummy data from a sample home router. Type 'help' or click an example.", "dim");
   run("get Device.DeviceInfo.");
 })();
 </script>
