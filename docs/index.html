@@ -1,0 +1,242 @@
+<title>tr181ctl Playground</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Sans+Condensed:wght@600&display=swap">
+<style>
+/* Layout: a single reading column; the live terminal is the hero, reference tables follow. */
+:root {
+  --bg: #f3f5f6;
+  --fg: #172026;
+  --muted: #5b6b74;
+  --line: #d5dde1;
+  --panel: #ffffff;
+  --term-bg: #0f1a1f;
+  --term-fg: #d6e4ea;
+  --term-dim: #6f8a96;
+  --accent: #0a7f8c;
+  --term-accent: #4fd1c5;
+  --ok: #3fb68b;
+  --err: #ff7a7a;
+  --f-display: "IBM Plex Sans Condensed", "Arial Narrow", sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0b1114; --fg: #dbe5ea; --muted: #8aa0aa; --line: #22323a; --panel: #111b20;
+  --term-bg: #060b0d; --accent: #4fd1c5; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0b1114; --fg: #dbe5ea; --muted: #8aa0aa; --line: #22323a; --panel: #111b20;
+  --term-bg: #060b0d; --accent: #4fd1c5; color-scheme: dark }
+
+body { background: var(--bg); color: var(--fg); font: 16px/1.6 var(--f-body); }
+.wrap { max-width: 920px; margin: 0 auto; padding-block: 40px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 40px; }
+header { display: grid; gap: 12px; }
+.eyebrow { font: 600 12px/1 var(--f-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+h1 { font: 600 clamp(32px, 6vw, 48px)/1.05 var(--f-display); margin: 0; text-wrap: balance; }
+h2 { font: 600 22px/1.2 var(--f-display); margin: 0 0 12px; }
+p { margin: 0; max-width: 65ch; }
+.lede { color: var(--muted); font-size: 18px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font: 12px/1 var(--f-mono); padding: 6px 10px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); }
+
+.term { background: var(--term-bg); color: var(--term-fg); border-radius: 10px; overflow: hidden;
+  font: 14px/1.55 var(--f-mono); box-shadow: 0 12px 40px -18px rgba(0,0,0,.45); }
+.term-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px 14px; border-bottom: 1px solid #1d2c33; color: var(--term-dim); font-size: 12px; }
+.led { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); margin-right: 8px;
+  box-shadow: 0 0 8px var(--ok); }
+#out { height: 340px; overflow: auto; padding: 14px; white-space: pre-wrap; word-break: break-all; }
+#out .cmd { color: var(--term-accent); }
+#out .err { color: var(--err); }
+#out .dim { color: var(--term-dim); }
+.prompt { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-top: 1px solid #1d2c33; }
+.prompt span { color: var(--term-accent); }
+#cmd { flex: 1; min-width: 0; background: transparent; border: 0; color: var(--term-fg); font: inherit; outline: none; }
+.quick { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.quick button { font: 13px/1 var(--f-mono); padding: 8px 12px; border-radius: 6px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--panel); color: var(--fg); }
+.quick button:hover { border-color: var(--accent); color: var(--accent); }
+.quick button:focus-visible, #cmd:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px; }
+.grid > div { min-width: 0; }
+.scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 11px/1 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+td code, li code { font: 13px var(--f-mono); }
+.rw { color: var(--accent); font-weight: 600; }
+pre.code { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px; overflow-x: auto;
+  font: 13px/1.6 var(--f-mono); margin: 0; }
+ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line); padding-top: 16px; }
+@media (prefers-reduced-motion: reduce) { .led { box-shadow: none; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">C · TR-181 Device:2 · USP-style output</div>
+    <h1>tr181ctl Playground</h1>
+    <p class="lede">A small C99 tool that exposes a Linux device as a TR-181 data model. It reads <code>/proc</code> and <code>/sys/class/net</code>, answers <code>ubus-cli</code>-style queries and prints USP (TR-369) GetResp JSON. This page runs a browser copy of the same logic with sample data from a router.</p>
+    <div class="chips"><span class="chip">C99, no dependencies</span><span class="chip">OpenWrt package</span><span class="chip">Yocto recipe</span><span class="chip">10 smoke tests</span></div>
+  </header>
+
+  <section aria-label="Interactive terminal">
+    <div class="term">
+      <div class="term-bar"><span><span class="led" aria-hidden="true"></span>root@openwrt-cpe</span><span>sample device · uptime <span id="up">0</span>s</span></div>
+      <div id="out" role="log" aria-live="polite"></div>
+      <form class="prompt" id="f"><span>tr181&gt;</span><input id="cmd" autocomplete="off" spellcheck="false" aria-label="Command" placeholder="get Device.DeviceInfo."></form>
+    </div>
+    <div class="quick" id="quick">
+      <button type="button" data-c="get Device.DeviceInfo.">get Device.DeviceInfo.</button>
+      <button type="button" data-c="get Device.Ethernet.Interface.2.Stats.">get eth0 stats</button>
+      <button type="button" data-c="set Device.ManagementServer.URL https://acs.example.net">set ACS URL</button>
+      <button type="button" data-c="set Device.DeviceInfo.UpTime 5">try a read-only set</button>
+      <button type="button" data-c="json Device.ManagementServer.">json (USP GetResp)</button>
+      <button type="button" data-c="schema">schema</button>
+    </div>
+  </section>
+
+  <section class="grid">
+    <div>
+      <h2>Supported objects</h2>
+      <div class="scroll"><table>
+        <thead><tr><th>Object</th><th>Source</th></tr></thead>
+        <tbody>
+          <tr><td><code>Device.DeviceInfo.</code></td><td>uname, /proc/uptime, /proc/meminfo</td></tr>
+          <tr><td><code>Device.Ethernet.Interface.{i}.</code></td><td>/sys/class/net/*/operstate, address, mtu</td></tr>
+          <tr><td><code>…Interface.{i}.Stats.</code></td><td>/sys/class/net/*/statistics</td></tr>
+          <tr><td><code>Device.ManagementServer.</code> <span class="rw">RW</span></td><td>in memory, persisted to a state file</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+    <div>
+      <h2>How it works</h2>
+      <ul>
+        <li>Every parameter is produced by a getter and handed to a visitor callback, so <code>get</code>, <code>json</code> and <code>schema</code> share one tree walk.</li>
+        <li>A path ending in <code>.</code> is a partial path and returns the whole object, as in USP.</li>
+        <li><code>set</code> checks access and type (<code>unsignedInt</code>, <code>boolean</code>, <code>string</code>) before writing.</li>
+        <li>Linux <code>operstate</code> is mapped to the TR-181 <code>Status</code> enum.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2>Build and run</h2>
+    <pre class="code">make &amp;&amp; make test
+./tr181ctl get Device.Ethernet.Interface.1.
+./tr181ctl json Device.DeviceInfo.
+./tr181ctl shell
+
+# OpenWrt: copy packaging/openwrt into package/tr181-agent, then
+make package/tr181-agent/compile
+# Yocto: add packaging/yocto/tr181-agent_1.0.0.bb to your layer, then
+bitbake tr181-agent</pre>
+  </section>
+
+  <footer>Sample values in the terminal are illustrative. On a real device every value comes from the kernel.</footer>
+</div>
+
+<script>
+(function () {
+  var t0 = Date.now(), base = 86412;
+  var mgmt = { URL: ["", "string"], PeriodicInformEnable: ["false", "boolean"], PeriodicInformInterval: ["3600", "unsignedInt"] };
+  var ifs = [
+    { n: "br-lan", s: "Up", mac: "94:83:c4:1a:2b:3c", mtu: 1500, tx: 18234011, rx: 92310044, rate: 900 },
+    { n: "eth0", s: "Up", mac: "94:83:c4:1a:2b:3d", mtu: 1500, tx: 71200341, rx: 402119870, rate: 5200 },
+    { n: "lo", s: "Unknown", mac: "00:00:00:00:00:00", mtu: 65536, tx: 51233, rx: 51233, rate: 3 },
+    { n: "wlan0", s: "Down", mac: "94:83:c4:1a:2b:3e", mtu: 1500, tx: 0, rx: 0, rate: 0 }
+  ];
+  function up() { return base + Math.floor((Date.now() - t0) / 1000); }
+
+  function params() {
+    var p = [], el = (Date.now() - t0) / 1000;
+    function add(k, v, t, w) { p.push({ k: k, v: String(v), t: t || "string", w: !!w }); }
+    add("Device.DeviceInfo.Manufacturer", "OpenSource CPE");
+    add("Device.DeviceInfo.ModelName", "Generic-Linux-CPE");
+    add("Device.DeviceInfo.SoftwareVersion", "5.15.137");
+    add("Device.DeviceInfo.X_HostName", "openwrt-cpe");
+    add("Device.DeviceInfo.UpTime", up(), "unsignedInt");
+    add("Device.DeviceInfo.MemoryStatus.Total", 249344, "unsignedInt");
+    add("Device.Ethernet.InterfaceNumberOfEntries", ifs.length, "unsignedInt");
+    ifs.forEach(function (f, i) {
+      var b = "Device.Ethernet.Interface." + (i + 1) + ".", g = Math.floor(f.rate * el);
+      add(b + "Name", f.n); add(b + "Status", f.s); add(b + "MACAddress", f.mac);
+      add(b + "MaxMTUSize", f.mtu, "unsignedInt");
+      add(b + "Stats.BytesSent", f.tx + g, "unsignedInt");
+      add(b + "Stats.BytesReceived", f.rx + g * 4, "unsignedInt");
+      add(b + "Stats.PacketsSent", Math.floor((f.tx + g) / 900), "unsignedInt");
+      add(b + "Stats.PacketsReceived", Math.floor((f.rx + g * 4) / 1100), "unsignedInt");
+      add(b + "Stats.ErrorsSent", 0, "unsignedInt"); add(b + "Stats.ErrorsReceived", 0, "unsignedInt");
+    });
+    Object.keys(mgmt).forEach(function (k) { add("Device.ManagementServer." + k, mgmt[k][0], mgmt[k][1], true); });
+    return p;
+  }
+  function match(prefix) {
+    return params().filter(function (x) {
+      return prefix.slice(-1) === "." ? x.k.indexOf(prefix) === 0 : x.k === prefix;
+    });
+  }
+
+  var out = document.getElementById("out"), input = document.getElementById("cmd");
+  function line(text, cls) {
+    var d = document.createElement("div"); if (cls) d.className = cls; d.textContent = text; out.appendChild(d);
+    out.scrollTop = out.scrollHeight;
+  }
+
+  function run(raw) {
+    var a = raw.trim().split(/\s+/), c = a[0];
+    if (!c) return;
+    line("tr181> " + raw.trim(), "cmd");
+    if (c === "clear") { out.textContent = ""; return; }
+    if (c === "help") {
+      line("get <path> | set <path> <value> | json [path] | schema | version | clear\npaths ending in '.' return the whole object", "dim"); return;
+    }
+    if (c === "version") { line("1.0.0"); return; }
+    if (c === "get" && a[1]) {
+      var r = match(a[1]);
+      if (!r.length) return line("error: " + a[1] + " not found", "err");
+      line(r.map(function (x) { return x.k + '="' + x.v + '"'; }).join("\n")); return;
+    }
+    if (c === "set" && a[1] && a.length >= 3) {
+      var v = a.slice(2).join(" "), key = a[1].replace("Device.ManagementServer.", "");
+      if (a[1].indexOf("Device.ManagementServer.") === 0 && mgmt[key]) {
+        var t = mgmt[key][1];
+        if (t === "unsignedInt" && !/^\d+$/.test(v)) return line("error: invalid value '" + v + "' for " + a[1], "err");
+        if (t === "boolean") {
+          if (!/^(true|false|1|0)$/.test(v)) return line("error: invalid value '" + v + "' for " + a[1], "err");
+          v = (v === "1" || v === "true") ? "true" : "false";
+        }
+        mgmt[key][0] = v; line(a[1] + '="' + v + '"'); return;
+      }
+      line(match(a[1]).length ? "error: " + a[1] + " is read-only" : "error: " + a[1] + " not found", "err"); return;
+    }
+    if (c === "json") {
+      var path = a[1] || "Device.", m = match(path), res = {};
+      m.forEach(function (x) { res[x.k] = x.t === "string" ? x.v : (x.t === "boolean" ? x.v === "true" : Number(x.v)); });
+      line(JSON.stringify({ get_resp: { requested_path: path, err_code: m.length ? 0 : 7026, result_params: res } }, null, 2)); return;
+    }
+    if (c === "schema") {
+      line(params().map(function (x) {
+        return (x.k + "                                                  ").slice(0, 50) + " " + (x.t + "            ").slice(0, 12) + " " + (x.w ? "readWrite" : "readOnly");
+      }).join("\n")); return;
+    }
+    line("usage: get <path> | set <path> <value> | json [path] | schema   (type 'help')", "err");
+  }
+
+  document.getElementById("f").addEventListener("submit", function (e) {
+    e.preventDefault(); run(input.value); input.value = "";
+  });
+  document.getElementById("quick").addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (b) run(b.getAttribute("data-c"));
+  });
+  setInterval(function () { document.getElementById("up").textContent = up(); }, 1000);
+  document.getElementById("up").textContent = up();
+
+  line("tr181ctl 1.0.0 - type 'help' or try a button below", "dim");
+  run("get Device.DeviceInfo.");
+})();
+</script>
